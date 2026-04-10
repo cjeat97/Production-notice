@@ -53,6 +53,9 @@ body { font-family: 'Malgun Gothic', sans-serif; display: flex; height: 100vh; o
 .btn-add.red { border-color: #ef9a9a; color: #c62828; }
 .btn-add.red:hover { background: #ffebee; }
 
+.font-sel { width: 100%; padding: 8px 10px; border: 1.5px solid #e5e5e5; border-radius: 7px; font-size: 13px; font-family: inherit; color: #333; background: #fff; cursor: pointer; margin-bottom: 12px; }
+.font-sel:focus { outline: none; border-color: #f06292; }
+
 .bg-upload-label { display: block; width: 100%; padding: 9px; border: 1.5px dashed #ddd; border-radius: 8px; cursor: pointer; font-size: 12.5px; color: #999; font-family: inherit; background: #fafafa; text-align: center; box-sizing: border-box; margin-bottom: 7px; }
 .bg-upload-label:hover { background: #f0f0f0; border-color: #bbb; color: #666; }
 .bg-preview { display: flex; align-items: center; gap: 9px; background: #f7f7f7; border: 1.5px solid #eee; border-radius: 8px; padding: 7px 9px; }
@@ -194,6 +197,9 @@ body { font-family: 'Malgun Gothic', sans-serif; display: flex; height: 100vh; o
         <span class="fs-num" id="fv-extra">18px</span>
       </div>
     </div>
+
+    <div class="slbl" style="margin-bottom:6px">글씨체</div>
+    <select id="font-select" class="font-sel" onchange="applyFont(FONTS[this.selectedIndex])"></select>
 
     <div class="slbl">색상 조정 (마우스 휠로 조절)</div>
     <div class="fs-block">
@@ -386,6 +392,39 @@ function buildGrid() {
   }).join('');
 }
 
+// ── 글씨체 ────────────────────────────────────────────────────
+var FONTS = [
+  { name:'맑은 고딕',       family:"'Malgun Gothic', sans-serif",        gf:null },
+  { name:'나눔고딕',         family:"'Nanum Gothic', sans-serif",          gf:'Nanum+Gothic' },
+  { name:'나눔명조',         family:"'Nanum Myeongjo', serif",             gf:'Nanum+Myeongjo' },
+  { name:'나눔손글씨 붓',    family:"'Nanum Brush Script', cursive",       gf:'Nanum+Brush+Script' },
+  { name:'나눔펜',           family:"'Nanum Pen Script', cursive",         gf:'Nanum+Pen+Script' },
+  { name:'검은고딕',         family:"'Black Han Sans', sans-serif",        gf:'Black+Han+Sans' },
+  { name:'도현',             family:"'Do Hyeon', sans-serif",              gf:'Do+Hyeon' },
+  { name:'주아',             family:"'Jua', sans-serif",                   gf:'Jua' },
+  { name:'감자꽃',           family:"'Gamja Flower', cursive",             gf:'Gamja+Flower' },
+  { name:'Noto Sans KR',    family:"'Noto Sans KR', sans-serif",          gf:'Noto+Sans+KR' },
+  { name:'Noto Serif KR',   family:"'Noto Serif KR', serif",              gf:'Noto+Serif+KR' },
+];
+var loadedFonts = {};
+
+function buildFontSelect() {
+  document.getElementById('font-select').innerHTML = FONTS.map(function(f, i) {
+    return '<option value="'+i+'">'+f.name+'</option>';
+  }).join('');
+}
+
+function applyFont(f) {
+  if (f.gf && !loadedFonts[f.gf]) {
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=' + f.gf + ':wght@400;700&display=swap';
+    document.head.appendChild(link);
+    loadedFonts[f.gf] = true;
+  }
+  document.getElementById('notice').style.fontFamily = f.family;
+}
+
 // ── 채도 / 명도 ───────────────────────────────────────────────
 var satVal = 100, briVal = 100;
 
@@ -542,6 +581,7 @@ function clearBgImage() {
 
 // ── 초기화 ────────────────────────────────────────────────────
 buildGrid();
+buildFontSelect();
 applyTheme(THEMES[0]);
 initWheelSliders();
 renderMainForm();
