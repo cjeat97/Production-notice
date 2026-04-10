@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>공지문 생성기</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style id="base-style">
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Malgun Gothic', sans-serif; display: flex; height: 100vh; overflow: hidden; background: #d5d5d5; }
+
+/* FORM */
+.fp { width: 370px; flex-shrink: 0; background: #fff; display: flex; flex-direction: column; box-shadow: 2px 0 12px rgba(0,0,0,0.12); z-index: 1; }
+.fp-head { background: linear-gradient(135deg, #b5224f, #f06292); color: #fff; padding: 14px 18px; font-size: 15px; font-weight: bold; }
+.fp-body { flex: 1; overflow-y: auto; padding: 14px 18px; }
+
+.slbl { font-size: 10.5px; font-weight: 700; color: #aaa; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 7px; }
+.slbl.blk { color: #555; font-size: 11.5px; text-transform: none; letter-spacing: 0; }
+.slbl.red { color: #c62828; font-size: 11.5px; text-transform: none; letter-spacing: 0; }
+
+.theme-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.theme-cur { font-size: 11px; color: #888; }
+.theme-cur b { color: #333; }
+.theme-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 12px; }
+.tsw { border-radius: 7px; cursor: pointer; height: 30px; border: 2px solid transparent; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 2px; transition: transform 0.13s, border-color 0.13s, box-shadow 0.13s; }
+.tsw:hover { transform: scale(1.08); }
+.tsw.active { border-color: #222; box-shadow: 0 0 0 1px #fff, 0 0 0 3px #444; }
+.tsw span { font-size: 8px; color: #fff; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.6); line-height: 1; }
+
+.sep { border: none; border-top: 1px solid #f0f0f0; margin: 12px 0; }
+
+.fs-block { margin-bottom: 12px; }
+.fs-row { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+.fs-lbl { font-size: 12px; color: #555; width: 62px; flex-shrink: 0; }
+.fs-row input[type=range] { flex: 1; height: 4px; cursor: pointer; accent-color: #e91e8c; border-radius: 2px; }
+.fs-num { font-size: 11px; color: #999; width: 30px; text-align: right; flex-shrink: 0; }
+
+.fld { margin-bottom: 10px; }
+.fld label { display: block; font-size: 10.5px; font-weight: 700; color: #aaa; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 3px; }
+.fld input { width: 100%; padding: 7px 10px; border: 1.5px solid #e5e5e5; border-radius: 7px; font-size: 13px; font-family: inherit; color: #333; }
+.fld input:focus { outline: none; border-color: #f06292; }
+
+.icard { background: #fafafa; border: 1.5px solid #eee; border-radius: 9px; padding: 8px 9px; margin-bottom: 7px; }
+.icard-top { display: flex; gap: 5px; margin-bottom: 5px; align-items: center; }
+.icard-top input { flex: 1; padding: 5px 8px; border: 1.5px solid #e5e5e5; border-radius: 6px; font-size: 12.5px; font-family: inherit; color: #333; }
+.icard-top input:focus { outline: none; border-color: #f06292; }
+.icard textarea { width: 100%; padding: 5px 8px; border: 1.5px solid #e5e5e5; border-radius: 6px; font-size: 12.5px; font-family: inherit; color: #333; resize: vertical; min-height: 34px; line-height: 1.5; }
+.icard textarea:focus { outline: none; border-color: #f06292; }
+.btn-del { background: none; border: 1.5px solid #eee; border-radius: 6px; padding: 0 7px; height: 26px; cursor: pointer; color: #bbb; font-size: 12px; flex-shrink: 0; }
+.btn-del:hover { border-color: #e57373; color: #e57373; }
+.btn-add { width: 100%; padding: 7px; background: none; border: 1.5px dashed #f48fb1; border-radius: 8px; color: #b5224f; font-size: 12.5px; cursor: pointer; font-family: inherit; margin-bottom: 12px; }
+.btn-add:hover { background: #fce4ec; }
+.btn-add.red { border-color: #ef9a9a; color: #c62828; }
+.btn-add.red:hover { background: #ffebee; }
+
+.bg-upload-label { display: block; width: 100%; padding: 9px; border: 1.5px dashed #ddd; border-radius: 8px; cursor: pointer; font-size: 12.5px; color: #999; font-family: inherit; background: #fafafa; text-align: center; box-sizing: border-box; margin-bottom: 7px; }
+.bg-upload-label:hover { background: #f0f0f0; border-color: #bbb; color: #666; }
+.bg-preview { display: flex; align-items: center; gap: 9px; background: #f7f7f7; border: 1.5px solid #eee; border-radius: 8px; padding: 7px 9px; }
+.bg-preview img { width: 40px; height: 56px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; flex-shrink: 0; }
+.bg-pinfo { flex: 1; min-width: 0; }
+.bg-pname { font-size: 11.5px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+.bg-psub  { font-size: 10.5px; color: #aaa; }
+.bg-clear { background: none; border: 1.5px solid #eee; border-radius: 6px; padding: 4px 9px; cursor: pointer; font-size: 11px; color: #bbb; font-family: inherit; flex-shrink: 0; }
+.bg-clear:hover { border-color: #e57373; color: #e57373; }
+
+.fp-foot { padding: 11px 18px; border-top: 1px solid #f0f0f0; display: flex; gap: 8px; }
+.btn { flex: 1; padding: 10px 6px; border: none; border-radius: 9px; font-size: 14px; font-weight: bold; cursor: pointer; font-family: inherit; transition: opacity 0.2s; }
+.btn-pdf  { background: #c62828; color: #fff; }
+.btn-word { background: #1a56a0; color: #fff; }
+.btn:hover    { opacity: 0.85; }
+.btn:disabled { opacity: 0.55; cursor: wait; }
+
+/* PREVIEW */
+.pp { flex: 1; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 24px; }
+.sw { transform-origin: center center; flex-shrink: 0; }
+
+/* NOTICE */
+.notice {
+  width: 595px; height: 842px; position: relative; overflow: hidden;
+  font-family: 'Malgun Gothic', sans-serif;
+  --fs-org: 16px; --fs-ttl: 27px; --fs-body: 18px; --fs-extra: 18px;
+}
+.n-bg      { position: absolute; inset: 0; }
+.n-flowers { position: absolute; inset: 0; pointer-events: none; }
+.n-body    { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; }
+
+/* ── 단체명 영역 ── */
+.n-top { padding: 24px 40px 10px; text-align: center; }
+.n-org-line {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0; margin-bottom: 0;
+}
+.n-org-line::before,
+.n-org-line::after {
+  content: '';
+  flex: 0 0 auto;
+  width: 36px; height: 1.5px;
+  margin: 0 10px;
+  border-radius: 1px;
+  opacity: 0.4;
+  /* color set by theme */
+}
+.n-org {
+  font-size: var(--fs-org);
+  letter-spacing: 5px;
+  font-weight: bold;
+  white-space: nowrap;
+  color: #fff;
+}
+
+/* ── 리본 배너 (SVG arch) ── */
+.n-ribbon-wrap {
+  position: relative;
+  flex-shrink: 0;
+  margin: 10px 0 14px;
+  /* filter: drop-shadow set by theme */
+}
+.n-ribbon-wrap svg { display: block; }
+.n-ribbon-txt {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2; pointer-events: none;
+}
+.n-ttl {
+  font-size: var(--fs-ttl);
+  font-weight: bold; color: #fff;
+  letter-spacing: 5px; text-align: center;
+  text-shadow: 1px 2px 6px rgba(0,0,0,0.28);
+  padding: 0 80px; /* keep text away from pointed ends */
+}
+
+/* ── 흰 박스 ── */
+.n-box { margin: 50px 34px 14px; border-radius: 18px; padding: 22px 34px; border: 1.5px solid; flex-shrink: 0; }
+.n-row { display: flex; align-items: flex-start; margin-bottom: 11px; line-height: 1.65; }
+.n-row:last-child { margin-bottom: 0; }
+.n-lbl { font-size: var(--fs-body); font-weight: bold; color: #1a1a1a; white-space: nowrap; }
+.n-col { font-size: var(--fs-body); font-weight: bold; color: #1a1a1a; margin: 0 8px; }
+.n-val { font-size: var(--fs-body); color: #1a1a1a; line-height: 1.65; word-break: keep-all; }
+.n-row.red .n-lbl { font-size: var(--fs-extra); color: #c62828; }
+.n-row.red .n-col { font-size: var(--fs-extra); color: #c62828; }
+.n-row.red .n-val { font-size: var(--fs-extra); color: #c62828; }
+.n-box-sep { border: none; border-top: 1px solid; margin: 9px 0; }
+
+.n-spacer { flex: 1; }
+</style>
+<style id="theme-style"></style>
+</head>
+<body>
+
+<div class="fp">
+  <div class="fp-head">🌸 공지문 생성기</div>
+  <div class="fp-body">
+
+    <div class="theme-row">
+      <div class="slbl" style="margin:0">테마 색상</div>
+      <div class="theme-cur">선택: <b id="theme-name">핑크</b></div>
+    </div>
+    <div class="theme-grid" id="theme-grid"></div>
+
+    <div class="slbl" style="margin-bottom:6px">배경 이미지 업로드</div>
+    <label class="bg-upload-label" for="bg-file-input">📁 이미지 선택 — A4 크기에 자동 맞춤</label>
+    <input type="file" id="bg-file-input" accept="image/*" style="display:none" onchange="loadBgImage(this)">
+    <div id="bg-preview" style="display:none" class="bg-preview">
+      <img id="bg-thumb" src="" alt="">
+      <div class="bg-pinfo">
+        <div class="bg-pname" id="bg-fname"></div>
+        <div class="bg-psub">A4 배경 적용 중</div>
+      </div>
+      <button class="bg-clear" onclick="clearBgImage()">✕ 제거</button>
+    </div>
+
+    <hr class="sep">
+
+    <div class="slbl">글씨 크기 (마우스 휠로 조절)</div>
+    <div class="fs-block">
+      <div class="fs-row">
+        <span class="fs-lbl">단체명</span>
+        <input type="range" id="sl-org"   min="10" max="30" value="16" oninput="setFS('org',this.value)">
+        <span class="fs-num" id="fv-org">16px</span>
+      </div>
+      <div class="fs-row">
+        <span class="fs-lbl">배너 제목</span>
+        <input type="range" id="sl-ttl"   min="14" max="44" value="27" oninput="setFS('ttl',this.value)">
+        <span class="fs-num" id="fv-ttl">27px</span>
+      </div>
+      <div class="fs-row">
+        <span class="fs-lbl">본문 항목</span>
+        <input type="range" id="sl-body"  min="11" max="28" value="18" oninput="setFS('body',this.value)">
+        <span class="fs-num" id="fv-body">18px</span>
+      </div>
+      <div class="fs-row">
+        <span class="fs-lbl">추가 항목</span>
+        <input type="range" id="sl-extra" min="11" max="28" value="18" oninput="setFS('extra',this.value)">
+        <span class="fs-num" id="fv-extra">18px</span>
+      </div>
+    </div>
+
+    <hr class="sep">
+
+    <div class="fld"><label>단체명</label>
+      <input id="f-org" value="안양노회 여전도회 연합회" oninput="renderAll()"></div>
+    <div class="fld"><label>배너 제목</label>
+      <input id="f-ttl" value="제 42회 정기 총회" oninput="renderAll()"></div>
+
+    <hr class="sep">
+    <div class="slbl blk">본문 항목 (검정색)</div>
+    <div id="main-form"></div>
+    <button class="btn-add" onclick="addMain()">+ 항목 추가</button>
+
+    <div class="slbl red">추가 항목 (빨간색)</div>
+    <div id="extra-form"></div>
+    <button class="btn-add red" onclick="addExtra()">+ 항목 추가</button>
+
+  </div>
+  <div class="fp-foot">
+    <button class="btn btn-pdf"  onclick="savePDF()">📄 PDF 저장</button>
+    <button class="btn btn-word" onclick="saveWord()">📝 Word 저장</button>
+  </div>
+</div>
+
+<div class="pp" id="pp">
+  <div class="sw" id="sw">
+    <div class="notice" id="notice">
+      <div class="n-bg" id="n-bg"></div>
+      <div class="n-flowers" id="nfl"></div>
+      <div class="n-body">
+
+        <!-- 단체명 -->
+        <div class="n-top">
+          <div class="n-org-line">
+            <div class="n-org" id="p-org">안양노회 여전도회 연합회</div>
+          </div>
+        </div>
+
+        <!-- 아치형 리본 배너 -->
+        <div class="n-ribbon-wrap" id="ribbon-wrap">
+          <div id="ribbon-svg-slot"></div>
+          <div class="n-ribbon-txt">
+            <div class="n-ttl" id="p-ttl">제 42회 정기 총회</div>
+          </div>
+        </div>
+
+        <!-- 내용 박스 -->
+        <div class="n-box" id="n-box"></div>
+        <div class="n-spacer"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 20 Themes ─────────────────────────────────────────────────
+var THEMES = [
+  { name:'핑크',    bgBase:'#fce4ec', s1:'rgba(255,180,190,0.85)', s2:'rgba(248,185,205,0.75)', sm:'rgba(255,242,248,0.65)', bgG:'linear-gradient(155deg,#fce4ec 0%,#f8bbd9 45%,#fce4ec 70%,#f8d0e8 100%)', r1:'#f8aece', r2:'#e91e8c', r3:'#c0106e', rS:'#900850', rSh:'rgba(180,0,90,0.35)',    org:'#7b2d4a', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(255,182,193,0.55)', sep:'rgba(255,182,193,0.6)',  fF:'#ffb6c1', fP:'#fad0df', fC:'#ff80a0', br:'#d4a0b5' },
+  { name:'하늘',    bgBase:'#e3f2fd', s1:'rgba(179,216,255,0.85)', s2:'rgba(187,222,251,0.75)', sm:'rgba(240,248,255,0.65)', bgG:'linear-gradient(155deg,#e3f2fd 0%,#bbdefb 45%,#e3f2fd 70%,#c8e6ff 100%)', r1:'#90caf9', r2:'#1976d2', r3:'#0d47a1', rS:'#082d6e', rSh:'rgba(25,118,210,0.35)',  org:'#0d2a6b', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(144,202,249,0.55)', sep:'rgba(144,202,249,0.6)', fF:'#90caf9', fP:'#b3d9f7', fC:'#42a5f5', br:'#7bafd4' },
+  { name:'연두',    bgBase:'#e8f5e9', s1:'rgba(167,220,170,0.85)', s2:'rgba(185,228,185,0.75)', sm:'rgba(240,250,240,0.65)', bgG:'linear-gradient(155deg,#e8f5e9 0%,#c8e6c9 45%,#e8f5e9 70%,#d5eed5 100%)', r1:'#a5d6a7', r2:'#388e3c', r3:'#1b5e20', rS:'#0a3810', rSh:'rgba(56,142,60,0.35)',   org:'#1b5e20', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(165,214,167,0.55)', sep:'rgba(165,214,167,0.6)', fF:'#a5d6a7', fP:'#c8e6c9', fC:'#66bb6a', br:'#88b58a' },
+  { name:'그레이',  bgBase:'#f5f5f5', s1:'rgba(200,200,200,0.85)', s2:'rgba(210,210,210,0.75)', sm:'rgba(245,245,245,0.65)', bgG:'linear-gradient(155deg,#f5f5f5 0%,#e0e0e0 45%,#f5f5f5 70%,#ebebeb 100%)', r1:'#bdbdbd', r2:'#616161', r3:'#212121', rS:'#111',   rSh:'rgba(97,97,97,0.35)',    org:'#333',    boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(180,180,180,0.55)', sep:'rgba(180,180,180,0.6)', fF:'#bdbdbd', fP:'#d5d5d5', fC:'#9e9e9e', br:'#aaa' },
+  { name:'아이보리', bgBase:'#fdf8f0', s1:'rgba(240,225,195,0.85)', s2:'rgba(245,232,208,0.75)', sm:'rgba(253,250,240,0.65)', bgG:'linear-gradient(155deg,#fdf8f0 0%,#f5e6cc 45%,#fdf8f0 70%,#f8edd8 100%)', r1:'#e8d0a0', r2:'#b8881a', r3:'#7a5a10', rS:'#503a00', rSh:'rgba(180,140,60,0.35)', org:'#6b4a10', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(220,190,140,0.55)', sep:'rgba(220,190,140,0.6)', fF:'#e8d5a0', fP:'#f0e4bc', fC:'#d4aa50', br:'#c8b080' },
+  { name:'라벤더',  bgBase:'#f3e5f5', s1:'rgba(210,170,230,0.85)', s2:'rgba(218,180,238,0.75)', sm:'rgba(245,240,252,0.65)', bgG:'linear-gradient(155deg,#f3e5f5 0%,#e1bee7 45%,#f3e5f5 70%,#ead5ef 100%)', r1:'#ce93d8', r2:'#7b1fa2', r3:'#4a0072', rS:'#2e004a', rSh:'rgba(123,31,162,0.35)', org:'#4a0072', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(206,147,216,0.55)', sep:'rgba(206,147,216,0.6)', fF:'#ce93d8', fP:'#ddb5e5', fC:'#ab47bc', br:'#b07cbf' },
+  { name:'피치',    bgBase:'#fff3e0', s1:'rgba(255,210,160,0.85)', s2:'rgba(255,220,180,0.75)', sm:'rgba(255,248,240,0.65)', bgG:'linear-gradient(155deg,#fff3e0 0%,#ffe0b2 45%,#fff3e0 70%,#ffeccc 100%)', r1:'#ffcc80', r2:'#e65100', r3:'#8c2100', rS:'#5a1000', rSh:'rgba(230,81,0,0.35)',   org:'#7a2800', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(255,180,100,0.55)', sep:'rgba(255,180,100,0.6)', fF:'#ffcc80', fP:'#ffe0aa', fC:'#ffa726', br:'#dba870' },
+  { name:'민트',    bgBase:'#e0f2f1', s1:'rgba(160,220,210,0.85)', s2:'rgba(178,227,218,0.75)', sm:'rgba(235,250,248,0.65)', bgG:'linear-gradient(155deg,#e0f2f1 0%,#b2dfdb 45%,#e0f2f1 70%,#c8ece9 100%)', r1:'#80cbc4', r2:'#00695c', r3:'#003330', rS:'#001a18', rSh:'rgba(0,105,92,0.35)',   org:'#003330', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(128,203,196,0.55)', sep:'rgba(128,203,196,0.6)', fF:'#80cbc4', fP:'#a8d9d5', fC:'#26a69a', br:'#70b5af' },
+  { name:'코랄',    bgBase:'#fce8e4', s1:'rgba(248,180,165,0.85)', s2:'rgba(250,195,182,0.75)', sm:'rgba(255,242,238,0.65)', bgG:'linear-gradient(155deg,#fce8e4 0%,#f8d0c8 45%,#fce8e4 70%,#f9d8d0 100%)', r1:'#ef9a9a', r2:'#c62828', r3:'#7f0000', rS:'#4a0000', rSh:'rgba(198,40,40,0.35)', org:'#7f0000', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(239,154,154,0.55)', sep:'rgba(239,154,154,0.6)', fF:'#ef9a9a', fP:'#f5b8b8', fC:'#e57373', br:'#d08888' },
+  { name:'골드',    bgBase:'#fffde7', s1:'rgba(255,235,160,0.85)', s2:'rgba(255,238,175,0.75)', sm:'rgba(255,252,235,0.65)', bgG:'linear-gradient(155deg,#fffde7 0%,#fff9c4 45%,#fffde7 70%,#fff8d0 100%)', r1:'#ffe082', r2:'#f57f17', r3:'#b34700', rS:'#7a2e00', rSh:'rgba(245,127,23,0.35)', org:'#7a4500', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(255,220,100,0.55)', sep:'rgba(255,220,100,0.6)', fF:'#ffe082', fP:'#ffecaa', fC:'#ffd54f', br:'#d4b060' },
+  { name:'로즈',    bgBase:'#fce4ec', s1:'rgba(240,150,170,0.85)', s2:'rgba(245,165,185,0.75)', sm:'rgba(255,235,240,0.65)', bgG:'linear-gradient(155deg,#fce4ec 0%,#f8bbd0 45%,#fce4ec 70%,#f9ccd8 100%)', r1:'#f48fb1', r2:'#ad1457', r3:'#5c0a35', rS:'#380020', rSh:'rgba(173,20,87,0.35)',  org:'#5c0a35', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(244,143,177,0.55)', sep:'rgba(244,143,177,0.6)', fF:'#f48fb1', fP:'#f9b8cc', fC:'#e91e8c', br:'#c87095' },
+  { name:'인디고',  bgBase:'#e8eaf6', s1:'rgba(160,170,230,0.85)', s2:'rgba(175,185,235,0.75)', sm:'rgba(235,237,250,0.65)', bgG:'linear-gradient(155deg,#e8eaf6 0%,#c5cae9 45%,#e8eaf6 70%,#d0d4ee 100%)', r1:'#9fa8da', r2:'#283593', r3:'#0d1260', rS:'#060a40', rSh:'rgba(40,53,147,0.35)',  org:'#0d1260', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(159,168,218,0.55)', sep:'rgba(159,168,218,0.6)', fF:'#9fa8da', fP:'#bbc0e8', fC:'#5c6bc0', br:'#8890c4' },
+  { name:'올리브',  bgBase:'#f1f0e8', s1:'rgba(190,195,150,0.85)', s2:'rgba(200,205,162,0.75)', sm:'rgba(245,244,238,0.65)', bgG:'linear-gradient(155deg,#f1f0e8 0%,#dddbc8 45%,#f1f0e8 70%,#e5e4d5 100%)', r1:'#c5c68a', r2:'#558b2f', r3:'#2d5a00', rS:'#1a3800', rSh:'rgba(85,139,47,0.35)',  org:'#2d3800', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(180,185,130,0.55)', sep:'rgba(180,185,130,0.6)', fF:'#c5c68a', fP:'#d8d9ab', fC:'#9da65a', br:'#a8a870' },
+  { name:'틸',      bgBase:'#e0f7fa', s1:'rgba(150,220,228,0.85)', s2:'rgba(170,228,235,0.75)', sm:'rgba(230,250,252,0.65)', bgG:'linear-gradient(155deg,#e0f7fa 0%,#b2ebf2 45%,#e0f7fa 70%,#c8eef5 100%)', r1:'#80deea', r2:'#006064', r3:'#003d40', rS:'#001e20', rSh:'rgba(0,96,100,0.35)',   org:'#003d40', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(128,222,234,0.55)', sep:'rgba(128,222,234,0.6)', fF:'#80deea', fP:'#a8e9f0', fC:'#26c6da', br:'#60c0cc' },
+  { name:'버건디',  bgBase:'#f5e8ec', s1:'rgba(210,150,165,0.85)', s2:'rgba(218,162,175,0.75)', sm:'rgba(250,238,242,0.65)', bgG:'linear-gradient(155deg,#f5e8ec 0%,#ead0d8 45%,#f5e8ec 70%,#edd5db 100%)', r1:'#c57286', r2:'#6a0020', r3:'#3d0015', rS:'#1e000a', rSh:'rgba(106,0,32,0.35)',   org:'#3d0015', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(190,120,140,0.55)', sep:'rgba(190,120,140,0.6)', fF:'#c57286', fP:'#d89aa8', fC:'#9c2840', br:'#b06070' },
+  { name:'네이비',  bgBase:'#e8edf5', s1:'rgba(155,175,215,0.85)', s2:'rgba(170,188,222,0.75)', sm:'rgba(235,240,250,0.65)', bgG:'linear-gradient(155deg,#e8edf5 0%,#ccd5e8 45%,#e8edf5 70%,#d5dcee 100%)', r1:'#7896c0', r2:'#102060', r3:'#080f38', rS:'#03061e', rSh:'rgba(16,32,96,0.35)',  org:'#080f30', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(120,150,192,0.55)', sep:'rgba(120,150,192,0.6)', fF:'#7896c0', fP:'#9ab0d0', fC:'#4a6fa0', br:'#6882a8' },
+  { name:'포레스트', bgBase:'#edf5ea', s1:'rgba(150,195,150,0.85)', s2:'rgba(165,205,163,0.75)', sm:'rgba(238,248,236,0.65)', bgG:'linear-gradient(155deg,#edf5ea 0%,#d0e8cc 45%,#edf5ea 70%,#d8eed4 100%)', r1:'#88b888', r2:'#1b5e20', r3:'#0a2e10', rS:'#041508', rSh:'rgba(27,94,32,0.35)',   org:'#0a2010', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(136,184,136,0.55)', sep:'rgba(136,184,136,0.6)', fF:'#88b888', fP:'#aacaaa', fC:'#558855', br:'#709070' },
+  { name:'선셋',    bgBase:'#fff8f0', s1:'rgba(255,200,140,0.85)', s2:'rgba(255,210,160,0.75)', sm:'rgba(255,248,240,0.65)', bgG:'linear-gradient(155deg,#fff8f0 0%,#ffd9a8 45%,#fff8f0 70%,#ffe5bc 100%)', r1:'#ffb74d', r2:'#bf360c', r3:'#7c1a00', rS:'#4a0e00', rSh:'rgba(191,54,12,0.35)',  org:'#7a2200', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(255,183,77,0.55)', sep:'rgba(255,183,77,0.6)', fF:'#ffb74d', fP:'#ffcc80', fC:'#ff8f00', br:'#d4904a' },
+  { name:'퍼플',    bgBase:'#f0e6fa', s1:'rgba(195,150,230,0.85)', s2:'rgba(205,165,238,0.75)', sm:'rgba(245,235,252,0.65)', bgG:'linear-gradient(155deg,#f0e6fa 0%,#ddbef7 45%,#f0e6fa 70%,#e5ccf8 100%)', r1:'#ba68c8', r2:'#4a0080', r3:'#28004a', rS:'#140028', rSh:'rgba(74,0,128,0.35)',   org:'#2a0050', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(186,104,200,0.55)', sep:'rgba(186,104,200,0.6)', fF:'#ba68c8', fP:'#cc90d8', fC:'#9c27b0', br:'#a060b8' },
+  { name:'모카',    bgBase:'#f5ede6', s1:'rgba(210,175,148,0.85)', s2:'rgba(218,185,160,0.75)', sm:'rgba(250,242,236,0.65)', bgG:'linear-gradient(155deg,#f5ede6 0%,#e8d5c2 45%,#f5ede6 70%,#ecdac8 100%)', r1:'#c8a07a', r2:'#4e342e', r3:'#2c1c18', rS:'#180c0a', rSh:'rgba(78,52,46,0.35)',   org:'#2c1c18', boxBg:'rgba(255,255,255,0.85)', boxBd:'rgba(200,160,120,0.55)', sep:'rgba(200,160,120,0.6)', fF:'#c8a07a', fP:'#d8b898', fC:'#a07050', br:'#b89070' },
+];
+
+var currentTheme = THEMES[0];
+
+// ── SVG 꽃 생성 ────────────────────────────────────────────────
+function buildFlowerSVG(t) {
+  function fl(cx,cy,r,pale){
+    var fill=pale?t.fP:t.fF, out='';
+    for(var i=0;i<5;i++){var a=i*72; out+='<g transform="translate('+cx+','+cy+') rotate('+a+')"><ellipse cx="0" cy="-'+(r*.52).toFixed(1)+'" rx="'+(r*.38).toFixed(1)+'" ry="'+(r*.62).toFixed(1)+'" fill="'+fill+'" opacity=".82"/></g>';}
+    return out+'<circle cx="'+cx+'" cy="'+cy+'" r="'+(r*.22).toFixed(1)+'" fill="'+t.fC+'" opacity=".9"/>';
+  }
+  function pt(x,y,s,a){ return '<ellipse cx="'+x+'" cy="'+y+'" rx="'+s+'" ry="'+(s*1.7).toFixed(1)+'" fill="'+t.fF+'" transform="rotate('+a+','+x+','+y+')" opacity=".4"/>'; }
+  function br(d,w){ w=w||3; return '<path d="'+d+'" stroke="'+t.br+'" stroke-width="'+w+'" fill="none" stroke-linecap="round"/>'; }
+  return '<svg width="595" height="842" viewBox="0 0 595 842" xmlns="http://www.w3.org/2000/svg">'
+    +br('M595,0 Q558,45 538,85 Q518,130 528,168')+br('M538,85 Q572,68 595,52',2)+br('M528,140 Q558,122 582,128',2)
+    +fl(560,18,20)+fl(588,52,13)+fl(545,58,17)+fl(572,98,12,1)+fl(534,108,16)+fl(558,138,11,1)+fl(528,170,14)+fl(28,12,11,1)+fl(75,38,8)
+    +br('M0,842 Q32,798 54,768 Q78,728 67,688 Q56,652 88,622')+br('M67,688 Q35,682 8,698',2)+br('M54,752 Q22,758 0,772',2)
+    +fl(14,825,17)+fl(42,798,13)+fl(62,772,15)+fl(22,705,11,1)+fl(72,700,14)+fl(88,660,10,1)+fl(92,625,13)+fl(558,818,11,1)+fl(516,838,8)
+    +pt(175,58,7,35)+pt(315,22,5,-20)+pt(418,78,6,60)+pt(138,178,5,15)+pt(468,298,6,-45)+pt(97,498,5,70)+pt(490,598,6,30)+pt(345,778,5,-60)+pt(195,800,5,25)
+    +'</svg>';
+}
+
+// ── 웨이브 배너 리본 SVG (균일 두께 곡선 리본) ──────────────────
+function buildRibbonSVG(t) {
+  // 595 × 86
+  // 핵심: 하단 곡선 = 상단 곡선의 제어점 y값을 두께(th)만큼 평행이동
+  //       → 리본 두께가 전 구간 동일하게 유지됨
+  var W = 595, H = 86;
+  var th = 70;  // 리본 두께 (px)
+
+  // 500px 리본을 595px SVG 중앙에 배치 → 양쪽 여백 47~48px
+  var lUy = 20, rUy = 22;           // 좌·우 상단 끝점 y
+  var tC1y = 5,  tC1x = 155;        // 상단 제어점1
+  var tC2y = 8,  tC2x = 418;        // 상단 제어점2
+  var lTx = 48, rTx = 547;          // 좌·우 끝 x (500px 폭, 중앙 정렬)
+
+  // 하단 곡선 제어점 = 상단 + th (우→좌 역방향)
+  var lLy = lUy + th;
+  var rLy = rUy + th;
+
+  // 스왈로테일 V노치
+  var lVx = 67, lcy = (lUy + lLy) / 2;   // 좌 V노치
+  var rVx = 528, rcy = (rUy + rLy) / 2;  // 우 V노치
+
+  var path =
+      'M ' + lVx + ',' + lcy         // 왼쪽 V노치 (안쪽 끝)
+    + ' L ' + lTx + ',' + lUy        // 왼쪽 위 끝
+    // 상단 곡선: 제어점 (tC1x,tC1y) → (tC2x,tC2y) → 우 상단
+    + ' C ' + tC1x + ',' + tC1y + ' ' + tC2x + ',' + tC2y + ' ' + rTx + ',' + rUy
+    + ' L ' + rVx + ',' + rcy        // 오른쪽 V노치
+    + ' L ' + rTx + ',' + rLy        // 오른쪽 아래 끝
+    // 하단 곡선: 역방향, 제어점 y = 상단 제어점 y + th
+    + ' C ' + tC2x + ',' + (tC2y+th) + ' ' + tC1x + ',' + (tC1y+th) + ' ' + lTx + ',' + lLy
+    + ' Z';  // 왼쪽 아래 끝 → V노치로 닫힘
+
+  return '<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'
+    +'<defs>'
+    +'<linearGradient id="rg" x1="0" y1="0" x2="0" y2="1">'
+    +'<stop offset="0%"   stop-color="'+t.r1+'"/>'
+    +'<stop offset="45%"  stop-color="'+t.r2+'"/>'
+    +'<stop offset="100%" stop-color="'+t.r3+'"/>'
+    +'</linearGradient>'
+    +'</defs>'
+    +'<path d="'+path+'" fill="url(#rg)"/>'
+    +'</svg>';
+}
+
+// ── 테마 적용 ─────────────────────────────────────────────────
+function applyTheme(t) {
+  currentTheme = t;
+  // Flowers
+  document.getElementById('nfl').innerHTML = buildFlowerSVG(t);
+  // Ribbon SVG
+  document.getElementById('ribbon-svg-slot').innerHTML = buildRibbonSVG(t);
+  // Theme name
+  document.getElementById('theme-name').textContent = t.name;
+  // CSS injection
+  document.getElementById('theme-style').textContent =
+    '.notice{background:'+t.bgBase+'}'
+    +'.n-bg{background:'
+      +'radial-gradient(ellipse 130px 110px at 3% 3%,'+t.s1+',transparent),'
+      +'radial-gradient(ellipse 160px 130px at 97% 3%,'+t.s2+',transparent),'
+      +'radial-gradient(ellipse 220px 220px at 50% 48%,'+t.sm+',transparent),'
+      +'radial-gradient(ellipse 130px 110px at 3% 97%,'+t.s2+',transparent),'
+      +'radial-gradient(ellipse 160px 130px at 97% 97%,'+t.s1+',transparent),'
+      +t.bgG+'}'
+    +'.n-org{-webkit-text-stroke:1px '+t.org+';text-stroke:1px '+t.org+'}'
+    +'.n-org-line::before,.n-org-line::after{background:'+t.org+'}'
+    +'.n-ribbon-wrap{filter:drop-shadow(0 5px 14px '+t.rSh+')}'
+    +'.n-box{background:'+t.boxBg+';border-color:'+t.boxBd+'}'
+    +'.n-box-sep{border-top-color:'+t.sep+'}';
+  // Active swatch
+  document.querySelectorAll('.tsw').forEach(function(el,i){ el.classList.toggle('active', THEMES[i]===t); });
+}
+
+function buildGrid() {
+  document.getElementById('theme-grid').innerHTML = THEMES.map(function(t,i){
+    return '<div class="tsw" title="'+t.name+'" onclick="applyTheme(THEMES['+i+'])" style="background:linear-gradient(135deg,'+t.bgBase+' 0%,'+t.r2+' 100%)"><span>'+t.name+'</span></div>';
+  }).join('');
+}
+
+// ── 글씨 크기 ─────────────────────────────────────────────────
+function setFS(key, val) {
+  val = parseInt(val);
+  document.getElementById('notice').style.setProperty('--fs-'+key, val+'px');
+  document.getElementById('fv-'+key).textContent = val+'px';
+}
+function initWheelSliders() {
+  document.querySelectorAll('.fs-row input[type=range]').forEach(function(sl) {
+    sl.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      var v = Math.min(parseInt(sl.max), Math.max(parseInt(sl.min), parseInt(sl.value)+(e.deltaY<0?1:-1)));
+      sl.value = v; sl.dispatchEvent(new Event('input'));
+    }, { passive: false });
+  });
+}
+
+// ── 데이터 상태 ───────────────────────────────────────────────
+var mainItems = [
+  { lbl:'일시',          val:'2026년 3월 20일(금) 10:00 ~ 14:00' },
+  { lbl:'장소',          val:'군포교회본당 (3층)' },
+  { lbl:'참석대상',      val:'본회 실행위원, 지교회총대' },
+  { lbl:'실행위원 복장', val:'검은색 정장, 흰색 블라우스,\n연합회용 보라색 스카프 (사용후 반납)' },
+];
+var extras = [
+  { lbl:'총회 3차 기도회', val:'2026년 3월 19일(목) 09:30' },
+  { lbl:'총회 4차 기도회', val:'2026년 3월 20일(금) 09:00' },
+];
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── 폼 렌더링 ─────────────────────────────────────────────────
+function renderMainForm() {
+  document.getElementById('main-form').innerHTML = mainItems.map(function(e,i){
+    return '<div class="icard"><div class="icard-top">'
+      +'<input placeholder="항목명" value="'+esc(e.lbl)+'" oninput="mainItems['+i+'].lbl=this.value;renderBox()">'
+      +'<button class="btn-del" onclick="delMain('+i+')">✕</button></div>'
+      +'<textarea placeholder="내용" rows="2" oninput="mainItems['+i+'].val=this.value;renderBox()">'+esc(e.val)+'</textarea></div>';
+  }).join('');
+}
+function renderExtraForm() {
+  document.getElementById('extra-form').innerHTML = extras.map(function(e,i){
+    return '<div class="icard"><div class="icard-top">'
+      +'<input placeholder="항목명" value="'+esc(e.lbl)+'" oninput="extras['+i+'].lbl=this.value;renderBox()" style="border-color:#f9c4c4">'
+      +'<button class="btn-del" onclick="delExtra('+i+')">✕</button></div>'
+      +'<textarea placeholder="내용" rows="1" oninput="extras['+i+'].val=this.value;renderBox()" style="border-color:#f9c4c4">'+esc(e.val)+'</textarea></div>';
+  }).join('');
+}
+function addMain()   { mainItems.push({lbl:'',val:''}); renderMainForm(); }
+function addExtra()  { extras.push({lbl:'',val:''});    renderExtraForm(); }
+function delMain(i)  { mainItems.splice(i,1); renderMainForm();  renderBox(); }
+function delExtra(i) { extras.splice(i,1);   renderExtraForm(); renderBox(); }
+
+// ── 미리보기 렌더링 ───────────────────────────────────────────
+function renderBox() {
+  var html='';
+  var vm=mainItems.filter(function(e){return e.lbl||e.val;});
+  var ve=extras.filter(function(e){return e.lbl||e.val;});
+  vm.forEach(function(e){ html+='<div class="n-row"><span class="n-lbl">'+esc(e.lbl)+'</span><span class="n-col">:</span><span class="n-val">'+esc(e.val).replace(/\n/g,'<br>')+'</span></div>'; });
+  if(vm.length&&ve.length) html+='<div class="n-box-sep"></div>';
+  ve.forEach(function(e){ html+='<div class="n-row red"><span class="n-lbl">'+esc(e.lbl)+'</span><span class="n-col">:</span><span class="n-val">'+esc(e.val).replace(/\n/g,'<br>')+'</span></div>'; });
+  document.getElementById('n-box').innerHTML = html;
+}
+function renderAll() {
+  document.getElementById('p-org').textContent = document.getElementById('f-org').value;
+  document.getElementById('p-ttl').textContent = document.getElementById('f-ttl').value;
+  renderBox();
+}
+
+// ── 미리보기 스케일 ───────────────────────────────────────────
+function scalePreview() {
+  var pp=document.getElementById('pp'), sw=document.getElementById('sw');
+  sw.style.transform='scale('+Math.min((pp.clientWidth-48)/595,(pp.clientHeight-48)/842,1.2)+')';
+}
+window.addEventListener('resize', scalePreview);
+
+// ── PDF 저장 ──────────────────────────────────────────────────
+async function savePDF() {
+  var btn=document.querySelector('.btn-pdf');
+  btn.disabled=true; btn.textContent='⏳ 생성 중...';
+  try {
+    var c=await html2canvas(document.getElementById('notice'),{scale:2,useCORS:true,logging:false});
+    var {jsPDF}=window.jspdf;
+    var pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    pdf.addImage(c.toDataURL('image/png'),'PNG',0,0,210,297);
+    pdf.save((document.getElementById('f-ttl').value||'공지문')+'.pdf');
+  } catch(e){alert('오류: '+e.message);}
+  btn.disabled=false; btn.textContent='📄 PDF 저장';
+}
+
+// ── Word 저장 ─────────────────────────────────────────────────
+async function saveWord() {
+  var btn=document.querySelector('.btn-word');
+  btn.disabled=true; btn.textContent='⏳ 생성 중...';
+  try {
+    var c=await html2canvas(document.getElementById('notice'),{scale:2,useCORS:true,logging:false});
+    var img=c.toDataURL('image/png');
+    var html="<!DOCTYPE html><html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'><head><meta charset='utf-8'><style>@page WordSection{size:210mm 297mm;margin:0}body{margin:0}div.ws{page:WordSection}img{width:210mm;height:297mm;display:block}</style></head><body><div class='ws'><img src='"+img+"'/></div></body></html>";
+    var blob=new Blob([html],{type:'application/msword'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=(document.getElementById('f-ttl').value||'공지문')+'.doc';
+    a.click(); URL.revokeObjectURL(a.href);
+  } catch(e){alert('오류: '+e.message);}
+  btn.disabled=false; btn.textContent='📝 Word 저장';
+}
+
+// ── 배경 이미지 ───────────────────────────────────────────────
+var customBg = null;
+
+function loadBgImage(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    customBg = e.target.result;
+    // 인라인 스타일이 스타일시트보다 우선 → 테마 CSS를 덮어씀
+    document.getElementById('n-bg').style.cssText =
+      'background:url(' + customBg + ') center center / cover no-repeat';
+    // 꽃 SVG 숨김
+    document.getElementById('nfl').style.display = 'none';
+    document.getElementById('bg-thumb').src = customBg;
+    document.getElementById('bg-fname').textContent = file.name;
+    document.getElementById('bg-preview').style.display = 'flex';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearBgImage() {
+  customBg = null;
+  document.getElementById('bg-file-input').value = '';
+  document.getElementById('bg-preview').style.display = 'none';
+  document.getElementById('n-bg').style.cssText = '';  // 인라인 스타일 제거 → 테마 복원
+  document.getElementById('nfl').style.display = '';   // 꽃 SVG 복원
+}
+
+// ── 초기화 ────────────────────────────────────────────────────
+buildGrid();
+applyTheme(THEMES[0]);
+initWheelSliders();
+renderMainForm();
+renderExtraForm();
+renderAll();
+scalePreview();
+</script>
+</body>
+</html>
