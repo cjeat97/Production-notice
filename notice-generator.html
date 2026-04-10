@@ -195,6 +195,20 @@ body { font-family: 'Malgun Gothic', sans-serif; display: flex; height: 100vh; o
       </div>
     </div>
 
+    <div class="slbl">색상 조정 (마우스 휠로 조절)</div>
+    <div class="fs-block">
+      <div class="fs-row">
+        <span class="fs-lbl">채도</span>
+        <input type="range" id="sl-sat" min="0" max="200" value="100" oninput="setSat(this.value)">
+        <span class="fs-num" id="fv-sat">100%</span>
+      </div>
+      <div class="fs-row">
+        <span class="fs-lbl">명도</span>
+        <input type="range" id="sl-bri" min="50" max="150" value="100" oninput="setBri(this.value)">
+        <span class="fs-num" id="fv-bri">100%</span>
+      </div>
+    </div>
+
     <hr class="sep">
 
     <div class="fld"><label>단체명</label>
@@ -372,6 +386,25 @@ function buildGrid() {
   }).join('');
 }
 
+// ── 채도 / 명도 ───────────────────────────────────────────────
+var satVal = 100, briVal = 100;
+
+function applyColorFilter() {
+  var f = 'saturate(' + satVal + '%) brightness(' + briVal + '%)';
+  document.getElementById('n-bg').style.filter = f;
+  document.getElementById('ribbon-svg-slot').style.filter = f;
+}
+function setSat(val) {
+  satVal = parseInt(val);
+  document.getElementById('fv-sat').textContent = satVal + '%';
+  applyColorFilter();
+}
+function setBri(val) {
+  briVal = parseInt(val);
+  document.getElementById('fv-bri').textContent = briVal + '%';
+  applyColorFilter();
+}
+
 // ── 글씨 크기 ─────────────────────────────────────────────────
 function setFS(key, val) {
   val = parseInt(val);
@@ -488,8 +521,8 @@ function loadBgImage(input) {
   reader.onload = function(e) {
     customBg = e.target.result;
     // 인라인 스타일이 스타일시트보다 우선 → 테마 CSS를 덮어씀
-    document.getElementById('n-bg').style.cssText =
-      'background:url(' + customBg + ') center center / cover no-repeat';
+    document.getElementById('n-bg').style.background =
+      'url(' + customBg + ') center center / cover no-repeat';
     // 꽃 SVG 숨김
     document.getElementById('nfl').style.display = 'none';
     document.getElementById('bg-thumb').src = customBg;
@@ -503,7 +536,7 @@ function clearBgImage() {
   customBg = null;
   document.getElementById('bg-file-input').value = '';
   document.getElementById('bg-preview').style.display = 'none';
-  document.getElementById('n-bg').style.cssText = '';  // 인라인 스타일 제거 → 테마 복원
+  document.getElementById('n-bg').style.background = '';  // 배경만 제거 → 테마 복원
   document.getElementById('nfl').style.display = '';   // 꽃 SVG 복원
 }
 
